@@ -113,3 +113,6 @@ print(confusion_matrix(Y_validation, predictions))
 print(classification_report(Y_validation, predictions))
 
 print knn.predict([[5.7,3.0,4.2,1.2]])
+
+import pickle
+pickle.dump(knn, open('knn.model', 'wb'))
