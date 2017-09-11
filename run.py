@@ -15,6 +15,8 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
 
+from sklearn import preprocessing
+
 # Load dataset
 url = "https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data"
 names = ['sepal-length', 'sepal-width', 'petal-length', 'petal-width', 'class']
@@ -46,11 +48,33 @@ scatter_matrix(dataset)
 
 # Split-out validation dataset
 array = dataset.values
-X = array[:,0:4]
+# astype allows to overcome the following harmless (?) warning:
+# /home/mike/anaconda2/lib/python2.7/site-packages/sklearn/utils/validation.py:429: DataConversionWarning: Data with input dtype object was converted to float64 by StandardScaler.
+#  warnings.warn(msg, _DataConversionWarning)
+
+X = array[:,0:4].astype('float64')
 Y = array[:,4]
 validation_size = 0.20
 seed = 7
 X_train, X_validation, Y_train, Y_validation = model_selection.train_test_split(X, Y, test_size=validation_size, random_state=seed)
+
+
+# Mark says:
+# decision trees dont need to be scaled.
+# logistic regression doesnet either in theory.
+# though if you have an exponential type of replationship it can help
+# SVMs and neural networks do,as they work on gaussian distributions
+# techically you dont even NEED to scale data for them either,but if you dont outliers will vastly overcontribute to the model.
+# you can play around with an SVM and the iris dataset,try it scaled and unscaled.
+
+train_scaler = preprocessing.StandardScaler()
+test_scaler = preprocessing.StandardScaler()
+
+scaled = True
+if scaled:
+   X_train = train_scaler.fit_transform(X_train)
+   X_validation = test_scaler.fit_transform(X_validation)
+
 
 # Test options and evaluation metric
 seed = 7
@@ -67,13 +91,18 @@ models.append(('SVM', SVC()))
 # evaluate each model in turn
 results = []
 names = []
+print ('Scaled:%s'%scaled)
 for name, model in models:
-	kfold = model_selection.KFold(n_splits=10, random_state=seed)
-	cv_results = model_selection.cross_val_score(model, X_train, Y_train, cv=kfold, scoring=scoring)
-	results.append(cv_results)
-	names.append(name)
-	msg = "%s: %f (%f)" % (name, cv_results.mean(), cv_results.std())
-	print(msg)
+   cv_results = model_selection.cross_val_score(model, X_train, Y_train, cv=4, scoring=scoring)
+   model.fit(X_train,Y_train)
+   print('Model:',name)
+   print('Cross Val results:%s'%cv_results.mean())
+   Y_validation_predicted  = model.predict(X_validation)
+   print ('Out of Sample accuracy:',accuracy_score(Y_validation_predicted, Y_validation))
+   print('Confusion Matrix')
+   print(confusion_matrix(Y_validation_predicted,Y_validation))
+   print('classification_report')
+   print (classification_report(Y_validation_predicted,Y_validation))
 
 # Make predictions on validation dataset
 knn = KNeighborsClassifier()
